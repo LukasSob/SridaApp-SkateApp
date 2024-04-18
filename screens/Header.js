@@ -1,9 +1,5 @@
-import * as React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import React from 'react';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import HomeScreen from './screens/HomeScreen';
-import EventsScreen from './screens/EventsScreen';
 import styled from 'styled-components/native';
 import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native';
@@ -23,10 +19,10 @@ const Header = ({ navigation }) => {
       <HeaderTitle>Srida</HeaderTitle>
       <Box>
         <ButtonContainer>
-          <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+          <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')}>
             <ButtonText>Srida Map</ButtonText>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Events')}>
+          <TouchableOpacity onPress={() => navigation.navigate('EventsScreen')}>
             <ButtonText>Events</ButtonText>
           </TouchableOpacity>
         </ButtonContainer>
@@ -34,6 +30,7 @@ const Header = ({ navigation }) => {
     </Container>
   );
 };
+
 
 const Container = styled(SafeAreaView)`
   flex-direction: column;
@@ -70,29 +67,14 @@ const ButtonText = styled.Text`
   margin-top: 10px;
 `;
 
-const Stack = createStackNavigator();
+const styles = {
+  blurBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+};
 
-function App() {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
-            header: ({ navigation }) => <Header navigation={navigation} />,
-          }}
-        />
-        <Stack.Screen
-          name="Events"
-          component={EventsScreen}
-          options={{
-            header: ({ navigation }) => <Header navigation={navigation} />,
-          }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-}
-
-export default App;
+export default Header;
