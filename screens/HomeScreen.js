@@ -5,6 +5,8 @@ import Header from '../components/Header';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import mapStyle from '../components/MapStyle';
 import * as Location from 'expo-location';
+import OverlayComponent from '../components/Overlay';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DEFAULT_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
 
@@ -12,7 +14,9 @@ export default function HomeScreen({ route, navigation }) {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [userMarker, setUserMarker] = useState(null);
-  const [permanentMarker, setPermanentMarker] = useState(null);
+  const [permanentMarkers, setPermanentMarkers] = useState([]);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [showButtons, setShowButtons] = useState(true);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -21,6 +25,11 @@ export default function HomeScreen({ route, navigation }) {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           throw new Error('Permission to access location was denied');
+        }
+
+        const storedMarkers = await AsyncStorage.getItem('permanentMarkers');
+        if (storedMarkers) {
+          setPermanentMarkers(JSON.parse(storedMarkers));
         }
 
         Location.watchPositionAsync({ accuracy: Location.Accuracy.High, distanceInterval: 10 }, (location) => {
@@ -39,18 +48,45 @@ export default function HomeScreen({ route, navigation }) {
   };
 
   const handleAddMarker = () => {
-    setPermanentMarker(userMarker);
+    setShowOverlay(true);
   };
 
   const handleRemoveMarker = () => {
-    setPermanentMarker(null);
     setUserMarker(null);
+    setShowOverlay(false);
   };
 
+  const handleAddPermanentMarker = (spotId) => {
+    if (userMarker) {
+      setPermanentMarkers([...permanentMarkers, { id: spotId, coordinate: userMarker }]);
+      AsyncStorage.setItem('permanentMarkers', JSON.stringify([...permanentMarkers, { id: spotId, coordinate: userMarker }]));
+      setShowOverlay(false); // Close the overlay after adding permanent marker
+      setShowButtons(false); // Hide the buttons
+    }
+  };
+  
+  const handleCloseOverlay = () => {
+    setShowOverlay(false);
+  };
+
+  const handleMarkerPress = async (markerId) => {
+    try {
+      // Retrieve the information associated with the marker's ID
+      const spotInfo = await AsyncStorage.getItem(markerId);
+      if (spotInfo) {
+        // Display the information to the user
+        console.log(JSON.parse(spotInfo));
+        // You can set the retrieved information to a state variable
+        // and display it in your UI
+      }
+    } catch (error) {
+      console.error('Error retrieving spot information:', error);
+    }
+  };
+  
   return (
     <Container>
       <Header navigation={navigation} />
-      <Overlay></Overlay>
       <MapContainer>
         {location && (
           <StyledMapView
@@ -61,11 +97,13 @@ export default function HomeScreen({ route, navigation }) {
             showsMyLocationButton={true}
             onLongPress={handleLongPress}
           >
-            {permanentMarker && <Marker coordinate={permanentMarker} />}
-            {userMarker && !permanentMarker && <Marker coordinate={userMarker} />}
+            {permanentMarkers.map((marker, index) => (
+              marker.coordinate && <Marker key={index} coordinate={marker.coordinate} onPress={() => handleMarkerPress(marker.id)} />
+            ))}
+            {userMarker && <Marker coordinate={userMarker} />}
           </StyledMapView>
         )}
-        {userMarker && !permanentMarker && (
+        {userMarker && showButtons && (
           <ButtonContainer>
             <Button onPress={handleAddMarker}>
               <ButtonText>+</ButtonText>
@@ -77,9 +115,19 @@ export default function HomeScreen({ route, navigation }) {
         )}
       </MapContainer>
       {errorMsg && <ErrorMsg>{errorMsg}</ErrorMsg>}
+      {showOverlay && (
+        <OverlayComponent
+          isVisible={showOverlay}
+          handleCloseOverlay={handleCloseOverlay}
+          handleAddPermanentMarker={handleAddPermanentMarker}
+          animationType="slideInDown"
+          animationDuration={200}
+        />
+      )}
     </Container>
   );
 }
+
 
 const Container = styled.View`
   flex: 1;
@@ -92,15 +140,6 @@ const MapContainer = styled.View`
 
 const StyledMapView = styled(MapView)`
   flex: 1;
-`;
-
-const Overlay = styled.View`
-  flex: 1;
-  position: 'absolute';
-  left: 0px;
-  top: 0;
-  backgroundColor: 'transparent';
-  width: width;
 `;
 
 const ErrorMsg = styled.Text`
@@ -121,7 +160,6 @@ const Button = styled.TouchableOpacity`
   justify-content: center;
   align-items: center;
   margin-bottom: 10px;
-  
 `;
 
 const ButtonText = styled.Text`
