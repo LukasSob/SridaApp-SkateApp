@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Dimensions, TouchableOpacity } from 'react-native';
 import styled from 'styled-components/native';
-//import Header from '../components/Header';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import Header from '../components/Header';
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import mapStyle from '../components/MapStyle';
 import * as Location from 'expo-location';
 
@@ -11,6 +11,9 @@ const DEFAULT_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
 export default function HomeScreen({ route, navigation }) {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [userMarker, setUserMarker] = useState(null);
+  const [permanentMarker, setPermanentMarker] = useState(null);
+  const mapRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -30,15 +33,46 @@ export default function HomeScreen({ route, navigation }) {
     })();
   }, []);
 
+  const handleLongPress = (event) => {
+    const { coordinate } = event.nativeEvent;
+    setUserMarker(coordinate);
+  };
+
+  const handleAddMarker = () => {
+    setPermanentMarker(userMarker);
+  };
+
+  const handleRemoveMarker = () => {
+    setPermanentMarker(null);
+    setUserMarker(null);
+  };
+
   return (
     <Container>
+      <Header navigation={navigation} />
       <MapContainer>
         {location && (
           <StyledMapView
+            ref={mapRef}
             customMapStyle={mapStyle}
             provider={PROVIDER_GOOGLE}
             showsUserLocation={true}
-          />
+            showsMyLocationButton={true}
+            onLongPress={handleLongPress}
+          >
+            {permanentMarker && <Marker coordinate={permanentMarker} />}
+            {userMarker && !permanentMarker && <Marker coordinate={userMarker} />}
+          </StyledMapView>
+        )}
+        {userMarker && !permanentMarker && (
+          <ButtonContainer>
+            <Button onPress={handleAddMarker}>
+              <ButtonText>+</ButtonText>
+            </Button>
+            <Button onPress={handleRemoveMarker}>
+              <ButtonText>-</ButtonText>
+            </Button>
+          </ButtonContainer>
         )}
       </MapContainer>
       {errorMsg && <ErrorMsg>{errorMsg}</ErrorMsg>}
@@ -56,12 +90,30 @@ const MapContainer = styled.View`
 `;
 
 const StyledMapView = styled(MapView)`
-  width: ${Dimensions.get('window').width}px;
-  height: ${Dimensions.get('window').height}px;
+  flex: 1;
 `;
 
 const ErrorMsg = styled.Text`
   color: #ff0000;
 `;
 
-export { Container, MapContainer, StyledMapView, ErrorMsg };
+const ButtonContainer = styled.View`
+  position: absolute;
+  right: 10px;
+  top: 50%;
+`;
+
+const Button = styled.TouchableOpacity`
+  width: 50px;
+  height: 50px;
+  background-color: #495867;
+  border-radius: 25px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+`;
+
+const ButtonText = styled.Text`
+  color: #ffffff;
+  font-size: 24px;
+`;

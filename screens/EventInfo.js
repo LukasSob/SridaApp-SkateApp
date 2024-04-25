@@ -14,7 +14,7 @@ function EventsScreen({ navigation }) {
           <Header navigation={navigation} />
           <RowStyle>
             {/* TouchableOpacity button with the "+" icon */}
-            <TouchButton onPress={() => navigation.navigate('AddEvent')}>
+            <TouchButton>
               <Icon>
                 <Ionicons name="add" size={24} color="white" />
               </Icon>
