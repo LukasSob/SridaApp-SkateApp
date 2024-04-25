@@ -50,6 +50,7 @@ export default function HomeScreen({ route, navigation }) {
   return (
     <Container>
       <Header navigation={navigation} />
+      <Overlay></Overlay>
       <MapContainer>
         {location && (
           <StyledMapView
@@ -93,6 +94,15 @@ const StyledMapView = styled(MapView)`
   flex: 1;
 `;
 
+const Overlay = styled.View`
+  flex: 1;
+  position: 'absolute';
+  left: 0px;
+  top: 0;
+  backgroundColor: 'transparent';
+  width: width;
+`;
+
 const ErrorMsg = styled.Text`
   color: #ff0000;
 `;
@@ -111,6 +121,7 @@ const Button = styled.TouchableOpacity`
   justify-content: center;
   align-items: center;
   margin-bottom: 10px;
+  
 `;
 
 const ButtonText = styled.Text`

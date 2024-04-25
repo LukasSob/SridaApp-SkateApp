@@ -5,6 +5,7 @@ import HomeScreen from './screens/HomeScreen';
 import EventsScreen from './screens/EventsScreen';
 import AddEvent from './screens/AddEvent';
 import EventInfo from './screens/EventInfo';
+import AddSpot from './screens/AddSpot';
 import * as Location from 'expo-location';
 
 const Stack = createStackNavigator();
@@ -35,6 +36,7 @@ function App() {
         />
         <Stack.Screen name="AddEvent" component={AddEvent} options={Ops}/>
         <Stack.Screen name="EventInfo" component={EventInfo} options={Ops}/>
+        <Stack.Screen name="AddSpot" component={AddSpot} options={Ops}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
