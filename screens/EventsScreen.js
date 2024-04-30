@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Button, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import styled from 'styled-components';
 import { Ionicons } from '@expo/vector-icons';
-import colours from '../components/Colours';
 import Header from '../components/Header';
 import * as Animatable from 'react-native-animatable';
 import * as ImagePicker from 'expo-image-picker';
@@ -23,10 +22,9 @@ function EventsScreen({ navigation }) {
   const [eventTime, setEventTime] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const [eventCoverImage, setEventCoverImage] = useState(null);
-  const [interested, setInterested] = useState(0);
+  const [interested] = useState(0);
 
   useEffect(() => {
-    // Load stored events on component mount
     const loadEvents = async () => {
       const storedEvents = await AsyncStorage.getItem('events');
       if (storedEvents) setEvents(JSON.parse(storedEvents));
@@ -39,19 +37,52 @@ function EventsScreen({ navigation }) {
     await AsyncStorage.setItem('events', JSON.stringify(newEvents));
   };
 
-  const pickImage = async () => {
-    let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permissionResult.granted === false) {
+
+  
+  // ----------------------------------
+  // handle permission and image picker
+  // ----------------------------------
+  const handleAddImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
       return;
     }
-    let pickerResult = await ImagePicker.launchImageLibraryAsync();
-    if (pickerResult.cancelled === true) {
-      return;
-    }
-    setEventCoverImage(pickerResult.assets[0].uri);
+    pickImage();
   };
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log("Image Picker Full Result:", JSON.stringify(result, null, 2));
+
+    if (result.cancelled) {
+      console.log("Image picking was cancelled.");
+      return;
+    }
+
+    if (result.assets && result.assets.length > 0) {
+      const uri = result.assets[0].uri;
+      if (!uri) {
+        console.error("No URI found in the assets.");
+        return;
+      }
+      setEventCoverImage(result.assets[0].uri);
+    } else {
+      console.error("No assets found in the result.");
+    }
+  };
+  // ----------------------------------
+
+
+
+  // ---------------------------------------------------------------
+  // handle open overlay animation and showcase of event information
+  // ---------------------------------------------------------------
   const handleAddEvent = () => {
     setShowOverlay(true);
     if (overlayRef.current) {
@@ -62,14 +93,27 @@ function EventsScreen({ navigation }) {
   const handleEventClick = (event) => {
     setCurrentEvent(event);
   };
+  // ---------------------------------------------------------------
 
+
+
+  // ----------------------------------------------------
+  // handle close overlay for the close animation to work
+  // ----------------------------------------------------
   const handleCloseOverlay = () => {
-    setShowOverlay(false);
-    setCurrentEvent(null);
+    if (overlayRef.current) {
+      overlayRef.current.animate('fadeOutDown', 500).then(() => {
+        setShowOverlay(false);
+        setCurrentEvent(null)
+      });
+    }
   };
+  // ----------------------------------------------------
 
 
-
+  // ---------------------------
+  // handle the event submission
+  // ---------------------------
   const handleSubmit = () => {
     const newEvent = {
       name: eventName,
@@ -86,6 +130,7 @@ function EventsScreen({ navigation }) {
     saveEvents(updatedEvents);
     handleCloseOverlay();
   };
+  // ---------------------------
 
   return (
     <Container>
@@ -124,11 +169,14 @@ function EventsScreen({ navigation }) {
         </EventContainer>
       </Body>
       {currentEvent && (
-        <EventOverlay eventData={currentEvent} onClose={handleCloseOverlay} />
+        <EventOverlay 
+          eventData={currentEvent} 
+          onClose={() => setCurrentEvent(null)} 
+        />
       )}
       {showOverlay && (
         <StyledAnimatableOverlay
-          ref={overlayRef} // Set the ref here
+          ref={overlayRef}
         >
           <TitleContainer>
             <Title>Create Event</Title>
@@ -137,6 +185,7 @@ function EventsScreen({ navigation }) {
             <CloseButtonText>X</CloseButtonText>
           </CloseButton>
           <SubTitle>Provide Event Information</SubTitle>
+          <Box></Box>
           <ContainerBody>
             <RowContainer>
               <InputLabel>Event Name:</InputLabel>
@@ -196,7 +245,9 @@ function EventsScreen({ navigation }) {
 
             <RowContainer>
               <InputLabel>Cover Image:</InputLabel>
-              <Btn title="Pick an image" onPress={pickImage} />
+              <Btn onPress={handleAddImage}>
+                <ButtonText>Submit Image</ButtonText>
+              </Btn>
             </RowContainer>
 
             <SubmitButtonContainer>
@@ -212,9 +263,13 @@ function EventsScreen({ navigation }) {
   );
 }
 
+  // ------------------------------------------------------------ //
+ // -----------              Containers              ----------- //
+// ------------------------------------------------------------ //
+
 const Container = styled.View`
   flex: 1;
-  background: ${colours.background};
+  background: #010020;
 `;
 
 const Body = styled.ScrollView`
@@ -231,24 +286,8 @@ const EventContainer = styled.View`
 padding: 10px;
 `;
 
-const EventBox = styled.TouchableOpacity`
-  flex-direction: row;
-  margin-bottom: 10px;
-  padding: 10px;
-  background-color: #fff;
-  border-radius: 10px;
-  align-items: center;
-  
-`;
-
 const EventDetails = styled.View`
   flex: 1;
-`;
-
-const BodyText = styled.Text`
-  color: #f7f7ff;
-  font-size: 15px;
-  margin: 20px 20px;
 `;
 
 const RowStyle = styled.View`
@@ -261,50 +300,12 @@ const RowStyle = styled.View`
   align-items: center;
 `;
 
-const Title = styled.Text`
-  font-size: 18px;
-  color: white;
-  margin-top: 30px;
-  margin-bottom: 5px;
-  text-align: center;
-`;
-
-const SubTitle = styled.Text`
-  font-size: 14px;
-  color: white;
-  margin-top: 20px;
-  align-items: center;
-  text-align: center;
-`;
-
-const ButtonText = styled.Text`
-  color: #ffffff;
-  font-size: 24px;
-`;
-
 const DivideHeader = styled.View`
   background: #fff;
   height: 1px;
   align-items: center;
   margin-left: 20px;
   margin-right: 20px;
-`;
-const TouchButton = styled.TouchableOpacity`
-  align-items: center;
-`;
-
-const Btn = styled.Button`
-  height: 50px;
-  width: 150px;
-  border-radius: 15px;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  position: absolute;
-  left: 150px;
-  top: 150px;
-  z-index: 9999;
-  background: #333;
 `;
 
 const StyledAnimatableOverlay = styled(Animatable.View).attrs({
@@ -338,27 +339,15 @@ const TitleContainer = styled.View`
   padding-right: 20px;
 `;
 
-const TitleText = styled.Text`
-  flex: 1;
-  text-align: center;
-  font-size: 18px;
-`;
-
-// Close Button
-const CloseButton = styled(TouchableOpacity)`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 5px;
+const Box = styled.View`
+  width: 80%;
+  height: 1px;
+  background-color: #fff;
   border-radius: 10px;
-  z-index: 10;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  align-self: center;
 `;
-
-const CloseButtonText = styled.Text`
-  color: #000;
-  font-size: 26px;
-`;
-
 
 const RowContainer = styled.View`
   flex-direction: row;
@@ -368,11 +357,45 @@ const RowContainer = styled.View`
   margin-top: 15%;
 `;
 
+  // ------------------------------------------------------ //
+ // -----------              Text              ----------- //
+// ------------------------------------------------------ //
+
+const Title = styled.Text`
+  font-size: 18px;
+  color: white;
+  margin-top: 30px;
+  margin-bottom: 5px;
+  text-align: center;
+`;
+
+const SubTitle = styled.Text`
+  font-size: 13px;
+  color: #999;
+  margin-top: 20px;
+  align-items: center;
+  text-align: center;
+`;
+
+const ButtonText = styled.Text`
+  color: #fff;
+  font-size: 16px;
+`;
+
+const CloseButtonText = styled.Text`
+  color: #000;
+  font-size: 26px;
+`;
+
 const InputLabel = styled.Text`
   font-size: 16px;
   width: 30%; 
   color: #f7f7ff;
 `;
+
+  // --------------------------------------------------------- //
+ // -----------              Buttons              ----------- //
+// --------------------------------------------------------- //
 
 const InputField = styled.TextInput.attrs({
   placeholderTextColor: '#fff',
@@ -384,6 +407,40 @@ const InputField = styled.TextInput.attrs({
   padding: 10px;
   color: #fff; 
   width: 60%; 
+`;
+
+const EventBox = styled.TouchableOpacity`
+  flex-direction: row;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 10px;
+  align-items: center;
+`;
+
+const Btn = styled(TouchableOpacity)`
+  border-width: 1px;
+  border-color: #ccc;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 150px;
+  background-color: #556;
+  border-radius: 5px;
+  align-self: center;
+`;
+
+const TouchButton = styled.TouchableOpacity`
+  align-items: center;
+`;
+
+const CloseButton = styled(TouchableOpacity)`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px;
+  border-radius: 10px;
+  z-index: 10;
 `;
 
 const SubmitButton = styled(TouchableOpacity)`

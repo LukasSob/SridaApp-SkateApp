@@ -1,14 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Modal, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { TouchableOpacity, Image } from 'react-native';
 import styled from 'styled-components/native';
 import * as Animatable from 'react-native-animatable';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 
 
 const EventOverlay = ({ eventData, onClose }) => {
   const overlayRef = useRef(null);
-  const [activeSection, setActiveSection] = useState('details');
 
+
+  // --------------------------------------------
+  // handle the overlay open and close animations
+  // --------------------------------------------
   useEffect(() => {
     if (overlayRef.current) {
       overlayRef.current.animate('fadeInUp', 500);
@@ -20,17 +22,26 @@ const EventOverlay = ({ eventData, onClose }) => {
       overlayRef.current.animate('fadeOutDown', 500).then(onClose);
     }
   };
+  // --------------------------------------------
 
+  // -----------------------------------------------------------------------------------
+  // handle the increase of spot interests (adding when an interested button is clicked)
+  // -----------------------------------------------------------------------------------
   const increaseInterested = () => {
     eventData.interested = eventData.interested + 1;
   };
+  // -----------------------------------------------------------------------------------
 
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'details':
-        return (
-          <>
-            <RowContainer>
+  return (
+    <OverlayContainer>
+      <StyledAnimatableOverlay ref={overlayRef}>
+        <CloseButton onPress={handleCloseOverlay}>
+          <CloseButtonText>X</CloseButtonText>
+        </CloseButton>
+        <Title>{eventData.name || "Event Details"}</Title>
+        <Body>
+          <ContentContainer>
+          <RowContainer>
               {eventData.coverImage && (
                 <Image
                   source={{ uri: eventData.coverImage }}
@@ -64,30 +75,16 @@ const EventOverlay = ({ eventData, onClose }) => {
                 <Title>Interested</Title>
               </SectionButton>
               <SubTitle>{eventData.interested} people interested</SubTitle>
-            
-          </>
-        );
-      default:
-        return <SubTitle>Description: {eventData.description}</SubTitle>;
-    }
-  };
-
-  return (
-    <OverlayContainer>
-      <StyledAnimatableOverlay ref={overlayRef}>
-        <CloseButton onPress={handleCloseOverlay}>
-          <CloseButtonText>X</CloseButtonText>
-        </CloseButton>
-        <Title>{eventData.name || "Event Details"}</Title>
-        <Body>
-          <ContentContainer>
-            {renderContent()}
           </ContentContainer>
         </Body>
       </StyledAnimatableOverlay>
     </OverlayContainer>
   );
 };
+
+  // ------------------------------------------------------------ //
+ // -----------              Containers              ----------- //
+// ------------------------------------------------------------ //
 
 const OverlayContainer = styled.View`
   position: absolute;
@@ -120,6 +117,41 @@ const StyledAnimatableOverlay = styled(Animatable.View).attrs({
 const Body = styled.ScrollView`
   background: #477399;
 `;
+
+const RowContainer = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4%;
+  margin-top: 4%;
+`;
+
+const ColumnContainer = styled.View`
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const Box = styled.View`
+  width: 80%;
+  height: 1px;
+  background-color: #fff;
+  border-radius: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  align-self: center;
+`;
+
+const TextContainer = styled.View`
+  padding: 10px;
+`;
+
+const ContentContainer = styled.View`
+`;
+
+  // ------------------------------------------------------ //
+ // -----------              Text              ----------- //
+// ------------------------------------------------------ //
 
 const Title = styled.Text`
   font-size: 28px;
@@ -160,49 +192,17 @@ const Description = styled.Text`
   justify-content: center;
 `;
 
-const Box = styled.View`
-  width: 80%;
-  height: 1px;
-  background-color: #fff;
-  border-radius: 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  align-self: center;
+const CloseButtonText = styled.Text`
+  color: #000;
+  font-size: 26px;
 `;
 
-const TextContainer = styled.View`
-  padding: 10px;
-`;
-
-const ButtonContainer = styled.View`
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
-`;
-
-const ButtonText = styled.Text`
-  color: #f7f7ff;
-  font-size: 16px;
-  font-weight: bold;
-  margin-top: 10px;
-`;
-
-const RowContainer = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4%;
-  margin-top: 4%;
-`;
-
-const ColumnContainer = styled.View`
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-`;
+  // --------------------------------------------------------- //
+ // -----------              Buttons              ----------- //
+// --------------------------------------------------------- //
 
 const CloseButton = styled(TouchableOpacity)`
-  position:absolute;
+  position: absolute;
   top: 10px;
   right: 10px;
   padding: 5px;
@@ -210,16 +210,8 @@ const CloseButton = styled(TouchableOpacity)`
   z-index: 10;
 `;
 
-const CloseButtonText = styled.Text`
-  color: #000;
-  font-size: 26px;
-`;
-
 const SectionButton = styled(TouchableOpacity)`
   padding: 10px;
-`;
-
-const ContentContainer = styled.View`
 `;
 
 export default EventOverlay;

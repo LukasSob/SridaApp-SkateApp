@@ -10,13 +10,12 @@ import * as Animatable from 'react-native-animatable';
 import PinOverlay from '../components/PinOverlay';
 import * as ImagePicker from 'expo-image-picker';
 
-const DEFAULT_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
 
 const generateUniqueId = () => {
-  return Math.random().toString(36).substr(2, 9); // Generate a random string
+  return Math.random().toString(36).substr(2, 9);
 };
 
-export default function HomeScreen({ route, navigation }) {
+export default function HomeScreen({ navigation }) {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [userMarker, setUserMarker] = useState(null);
@@ -66,35 +65,43 @@ export default function HomeScreen({ route, navigation }) {
 
 
   useEffect(() => {
-    // Clean up the timer when the component unmounts
     return () => clearTimeout(pressTimer);
   }, [pressTimer]);
 
+
+  // ----------------------------------------------
+  // handle long press on the map to put down a pin
+  // ----------------------------------------------
   const handleLongPress = (event) => {
     const { coordinate } = event.nativeEvent;
     setUserMarker({
-      id: 'temp', // Temporary ID for the marker
-      coordinate: coordinate, // Use the coordinates from the long press event
-      name: 'Selected Location', // Optional: Name for the temporary marker
-      description: 'This is the selected location', // Optional: Description
+      id: 'temp', 
+      coordinate: coordinate, 
+      name: 'Selected Location', 
+      description: 'This is the selected location', 
     });
-    setShowButtons(true); // Optionally show buttons to add or remove the marker
+    setShowButtons(true);
   };
+  // ----------------------------------------------
 
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // Check for how long the user has been holding for (used to clear Async Storage if the user holds the header for 20 seconds)
+  // --------------------------------------------------------------------------------------------------------------------------
   const handlePressTimer = () => {
-    // Set a timer for 20 seconds
     const timer = setTimeout(async () => {
       await AsyncStorage.clear();
       console.log("AsyncStorage Cleared", "All data has been removed. Restart App To See Full Changes.");
-    }, 10000);
+    }, 20000);
     setPressTimer(timer);
   };
-
+  // Reset the hold timer if user lets go
   const handlePressOut = () => {
-    // Clear the timer if the user releases the press
     clearTimeout(pressTimer);
-
   };
+  //--------------------------------------------------------------------------------------------------------------------------
+
 
   const handleAddMarker = () => {
     setShowOverlay(true);
@@ -106,6 +113,9 @@ export default function HomeScreen({ route, navigation }) {
     setShowButtons(false);
   };
 
+  // ----------------------------------------------------
+  // handle close overlay for the close animation to work
+  // ----------------------------------------------------
   const handleCloseOverlay = () => {
     if (overlayRef.current) {
       overlayRef.current.animate('fadeOutDown', 500).then(() => {
@@ -113,7 +123,13 @@ export default function HomeScreen({ route, navigation }) {
       });
     }
   };
+  // ----------------------------------------------------
 
+
+
+  // ------------------------------------------------------------
+  // handle the pressing of the already existing spots on the map
+  // ------------------------------------------------------------
   const handleSpotPress = (markerId) => {
     const fullSpotInfo = markers.find(m => m.id === markerId.id);
     if (fullSpotInfo) {
@@ -122,7 +138,13 @@ export default function HomeScreen({ route, navigation }) {
       console.log("No spot found with the given ID:", markerId);
     }
   };
+  // ------------------------------------------------------------
+  
 
+
+  // ----------------------------------
+  // handle permission and image picker
+  // ----------------------------------
   const handleAddImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
@@ -132,7 +154,6 @@ export default function HomeScreen({ route, navigation }) {
     pickImage();
   };
 
-
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -141,14 +162,13 @@ export default function HomeScreen({ route, navigation }) {
       quality: 1,
     });
 
-    console.log("Image Picker Full Result:", JSON.stringify(result, null, 2));  // Provides a formatted view
+    console.log("Image Picker Full Result:", JSON.stringify(result, null, 2));
 
     if (result.cancelled) {
       console.log("Image picking was cancelled.");
       return;
     }
 
-    // Checking if assets exists and has at least one item
     if (result.assets && result.assets.length > 0) {
       const uri = result.assets[0].uri;
       if (!uri) {
@@ -160,7 +180,13 @@ export default function HomeScreen({ route, navigation }) {
       console.error("No assets found in the result.");
     }
   };
+  // ----------------------------------
 
+
+
+  // ---------------------------
+  // handle add review to a spot
+  // ---------------------------
   const addReviewToMarker = (markerId, review) => {
     const updatedMarkers = markers.map(marker => {
       if (marker.id === markerId) {
@@ -170,10 +196,15 @@ export default function HomeScreen({ route, navigation }) {
     });
 
     setMarkers(updatedMarkers);
-    // Optionally update AsyncStorage with new marker data
     AsyncStorage.setItem('markers', JSON.stringify(updatedMarkers));
   };
+  // ---------------------------
 
+
+
+  // --------------------------
+  // handle the spot submission
+  // --------------------------
   const handleSubmit = async () => {
     const newMarker = {
       id: generateUniqueId(),
@@ -182,15 +213,17 @@ export default function HomeScreen({ route, navigation }) {
       type: spotType || 'No Type',
       description: spotDescription || 'No Description',
       images: spotImages,
-      reviews: []  // Initialize with an empty array
+      reviews: [] 
     };
 
     const newMarkers = [...markers, newMarker];
     setMarkers(newMarkers);
-    setUserMarker(null); // Reset userMarker
+    setUserMarker(null);
     await AsyncStorage.setItem('markers', JSON.stringify(newMarkers));
     setShowOverlay(false);
   };
+  // --------------------------
+
 
 
   return (
@@ -199,7 +232,7 @@ export default function HomeScreen({ route, navigation }) {
         activeOpacity={1}
         onLongPress={handlePressTimer}
         onPressOut={handlePressOut}>
-        <Header navigation={navigation} />
+        <Header navigation={navigation}/>
       </TouchableOpacity>
       <MapContainer>
         {location && (
@@ -217,7 +250,7 @@ export default function HomeScreen({ route, navigation }) {
                 coordinate={marker.coordinate}
                 title={marker.name}
                 description={marker.description}
-                onPress={() => handleSpotPress(marker)} // Add this line
+                onPress={() => handleSpotPress(marker)}
 
               />
             ))}
@@ -245,12 +278,12 @@ export default function HomeScreen({ route, navigation }) {
           <PinOverlay
             spotInfo={selectedSpot}
             onClose={() => setSelectedSpot(null)}
-            addReviewToMarker={addReviewToMarker}  // Passing the function to add reviews
+            addReviewToMarker={addReviewToMarker}
           />
         )}
         {showOverlay && (
           <StyledAnimatableOverlay
-            ref={overlayRef} // Set the ref here
+            ref={overlayRef}
           >
             <TitleContainer>
               <Title>Add Spot</Title>
@@ -291,7 +324,9 @@ export default function HomeScreen({ route, navigation }) {
 
               <RowContainer>
                 <InputLabel>Spot Images:</InputLabel>
-                <Btn title="Pick images" onPress={pickImage} />
+                <Btn onPress={handleAddImage}>
+                  <ButtonText>Submit Images</ButtonText>
+                </Btn>
               </RowContainer>
 
               <SubmitButtonContainer>
@@ -308,6 +343,10 @@ export default function HomeScreen({ route, navigation }) {
   );
 }
 
+  // ------------------------------------------------------------ //
+ // -----------              Containers              ----------- //
+// ------------------------------------------------------------ //
+
 const Container = styled.View`
   flex: 1;
   background-color: #f7f7ff;
@@ -321,6 +360,49 @@ const MapContainer = styled.View`
 const StyledMapView = styled(MapView)`
   flex: 1;
 `;
+
+const Body = styled.ScrollView`
+  margin-bottom: -10%;
+`;
+
+const RowContainer = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around; /* Align items evenly */
+  margin-bottom: 15%;
+  margin-top: 15%;
+`;
+
+const TitleContainer = styled.View`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding-top: 10px;
+  padding-left: 20px;
+  padding-right: 20px;
+`;
+
+const ButtonContainer = styled.View`
+position: absolute;
+top: 45%;
+left: 0;
+right: 0;
+flex-direction: column;
+justify-content: flex-end;
+align-items: end;
+`;
+
+const SubmitButtonContainer = styled.View`
+  align-items: center; 
+`;
+
+  // ------------------------------------------------------ //
+ // -----------              Text              ----------- //
+// ------------------------------------------------------ //
 
 // Error Message Text
 const ErrorMsg = styled.Text`
@@ -343,41 +425,9 @@ const SubTitle = styled.Text`
   text-align: center;
 `;
 
-const Btn = styled.Button`
-  height: 50px;
-  width: 150px;
-  border-radius: 15px;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  position: absolute;
-  left: 150px;
-  top: 150px;
-  z-index: 9999;
-  background: #333;
-`;
-
-// Button Container
-const ButtonContainer = styled.View`
-  position: absolute;
-  right: 10px;
-  top: 50%;
-`;
-
-// Buttons and Text within Buttons
-const Button = styled.TouchableOpacity`
-  width: 50px;
-  height: 50px;
-  background-color: #495867;
-  border-radius: 25px;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 10px;
-`;
-
 const ButtonText = styled.Text`
   color: #ffffff;
-  font-size: 24px;
+  font-size: 16px;
 `;
 
 // Styled Overlay with Animatable
@@ -399,56 +449,6 @@ const StyledAnimatableOverlay = styled(Animatable.View).attrs({
   border-top-right-radius: 20px;
 `;
 
-// Title Container inside Overlay
-const TitleContainer = styled.View`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  padding-top: 10px;
-  padding-left: 20px;
-  padding-right: 20px;
-`;
-
-// Title Text
-const TitleText = styled.Text`
-  flex: 1;
-  text-align: center;
-  font-size: 18px;
-`;
-
-// Close Button
-const CloseButton = styled.TouchableOpacity`
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  padding: 10px;
-  margin-top: 10px;
-  border-radius: 10px;
-`;
-
-const CloseButtonText = styled.Text`
-  color: #ffffff;
-  font-size: 16px;
-`;
-
-// Input Fields to Add Spot Info
-
-const Body = styled.ScrollView`
-  margin-bottom: -10%;
-`;
-
-const RowContainer = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between; /* Align items evenly */
-  margin-bottom: 15%;
-  margin-top: 15%;
-`;
-
 const InputLabel = styled.Text`
   font-size: 16px;
   width: 30%; /* Set a specific width for the labels */
@@ -467,6 +467,27 @@ const InputField = styled.TextInput.attrs({
   width: 60%; /* Adjust the width of the input fields */
 `;
 
+const CloseButtonText = styled.Text`
+  color: #ffffff;
+  font-size: 16px;
+`;
+
+  // --------------------------------------------------------- //
+ // -----------              Buttons              ----------- //
+// --------------------------------------------------------- //
+
+const Btn = styled(TouchableOpacity)`
+  border-width: 1px;
+  border-color: #ccc;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 150px;
+  background-color: #556;
+  border-radius: 5px;
+  align-self: center;
+`;
+
 const SubmitButton = styled(TouchableOpacity)`
   border-width: 1px;
   border-color: #ccc;
@@ -479,7 +500,22 @@ const SubmitButton = styled(TouchableOpacity)`
   align-self: center;
 `;
 
-const SubmitButtonContainer = styled.View`
-  align-items: center; 
+const Button = styled.TouchableOpacity`
+  width: 50px;
+  height: 50px;
+  background-color: #495867;
+  border-radius: 25px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+`;
+
+const CloseButton = styled.TouchableOpacity`
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
 `;
 

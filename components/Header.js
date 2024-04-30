@@ -4,13 +4,6 @@ import styled from 'styled-components/native';
 import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native';
 
-const BlurBackground = styled(BlurView)`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-`;
 
 const Header = ({ navigation }) => {
   return (
@@ -31,6 +24,9 @@ const Header = ({ navigation }) => {
   );
 };
 
+  // ------------------------------------------------------------ //
+ // -----------              Containers              ----------- //
+// ------------------------------------------------------------ //
 
 const Container = styled(SafeAreaView)`
   flex-direction: column;
@@ -39,10 +35,18 @@ const Container = styled(SafeAreaView)`
   z-index: 1;
 `;
 
-const HeaderTitle = styled.Text`
-  font-size: 36px;
-  font-weight: bold;
-  color: #f7f7ff;
+const BlurBackground = styled(BlurView)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+`;
+
+const ButtonContainer = styled.View`
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
 `;
 
 const Box = styled.View`
@@ -54,10 +58,14 @@ const Box = styled.View`
   margin-bottom: 10px;
 `;
 
-const ButtonContainer = styled.View`
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
+  // ------------------------------------------------------ //
+ // -----------              Text              ----------- //
+// ------------------------------------------------------ //
+
+const HeaderTitle = styled.Text`
+  font-size: 36px;
+  font-weight: bold;
+  color: #f7f7ff;
 `;
 
 const ButtonText = styled.Text`
@@ -66,15 +74,5 @@ const ButtonText = styled.Text`
   font-weight: bold;
   margin-top: 10px;
 `;
-
-const styles = {
-  blurBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-};
 
 export default Header;

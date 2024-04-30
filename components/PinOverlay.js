@@ -1,7 +1,6 @@
-// PinOverlay.js
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Modal, Linking, Image, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Modal, Linking, Image, Text, TouchableOpacity } from 'react-native';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import styled from 'styled-components/native';
 import * as Animatable from 'react-native-animatable';
@@ -15,11 +14,18 @@ const PinOverlay = ({ spotInfo, onClose, addReviewToMarker }) => {
 
   const images = spotInfo.images?.map(uri => ({ url: uri })) || [];
 
+  // --------------------------------
+  // hanle the extension of the image
+  // --------------------------------
   const openImageModal = (index) => {
     setCurrentImageIndex(index);
     setImageModalVisible(true);
   };
+  // --------------------------------
 
+  // --------------------------------------------
+  // handle the overlay open and close animations
+  // --------------------------------------------
   useEffect(() => {
     if (overlayRef.current) {
       overlayRef.current.animate('fadeInUp', 500);
@@ -31,18 +37,30 @@ const PinOverlay = ({ spotInfo, onClose, addReviewToMarker }) => {
       overlayRef.current.animate('fadeOutDown', 500).then(onClose);
     }
   };
+  // --------------------------------------------
 
+
+
+  // ------------------------------------------
+  // handle the addition of reviews to the spot
+  // ------------------------------------------
   const handleAddReview = () => {
     if (newReview.trim()) {
       addReviewToMarker(spotInfo.id, newReview);
-      setNewReview('');  // Clear the input after submitting
+      setNewReview('');
     }
   };
+  // ------------------------------------------
 
-  const openMap = (coordinates) => {
+
+  // ---------------------------------------------------
+  // open the coordinates in the google maps website/app
+  // ---------------------------------------------------
+  const openMap = () => {
     const url = `https://www.google.com/maps/search/?api=1&query=${spotInfo.coordinate.latitude},${spotInfo.coordinate.longitude}`;
     Linking.openURL(url);
   };
+  // ---------------------------------------------------
 
   const renderContent = () => {
     switch (activeSection) {
@@ -52,7 +70,6 @@ const PinOverlay = ({ spotInfo, onClose, addReviewToMarker }) => {
             <Title>Location</Title>
             <LocationContainer>
               <Icon name="place" size={25} color="#fff" />
-              {/* Check if an address is available, otherwise fallback to coordinates */}
               <LocationText>
                 {spotInfo.address || `${spotInfo.coordinate.latitude} ${spotInfo.coordinate.longitude}`}
                 {console.log("Current spotInfo:", spotInfo)}
@@ -182,7 +199,6 @@ const PinOverlay = ({ spotInfo, onClose, addReviewToMarker }) => {
               {renderContent()}
             </ContentContainer>
           </Body>
-          {/* Render images if any */}
         </StyledAnimatableOverlay>
       </OverlayContainer>
       <Modal visible={imageModalVisible} transparent={true}>
@@ -191,6 +207,11 @@ const PinOverlay = ({ spotInfo, onClose, addReviewToMarker }) => {
     </>
   );
 };
+
+
+  // ------------------------------------------------------------ //
+ // -----------              Containers              ----------- //
+// ------------------------------------------------------------ //
 
 const ImagesContainer = styled.View`
   flex-direction: row;
@@ -226,6 +247,12 @@ const OverlayContainer = styled.View`
   flex: 1;
 `;
 
+const ButtonContainer = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+`;
+
 const Body = styled.ScrollView`
   background: #477399;
   margin-bottom: -10%;
@@ -235,6 +262,28 @@ const Spacing = styled.View`
 margin-bottom: 30px;
 `;
 
+const Box = styled.View`
+  width: 100%;
+  height: 1px;
+  background-color: #fff;
+  border-radius: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+`;
+
+const ContentContainer = styled.View`
+  padding: 20px;
+`;
+
+const LocationContainer = styled.View`
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 0;
+`;
+
+  // ------------------------------------------------------ //
+ // -----------              Text              ----------- //
+// ------------------------------------------------------ //
 
 const Title = styled.Text`
   font-size: 28px;
@@ -264,22 +313,6 @@ const Description = styled.Text`
   align-self: center;
 `;
 
-
-const Box = styled.View`
-  width: 100%;
-  height: 1px;
-  background-color: #fff;
-  border-radius: 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-`;
-
-const ButtonContainer = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 const ButtonText = styled.Text`
   color: #f7f7ff;
   font-size: 16px;
@@ -287,33 +320,12 @@ const ButtonText = styled.Text`
   margin-top: 10px;
 `;
 
-const CloseButton = styled(TouchableOpacity)`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 5px;
-  border-radius: 10px;
-  z-index: 10;
-`;
 
 const CloseButtonText = styled.Text`
   color: #000;
   font-size: 26px;
 `;
 
-const SectionButton = styled(TouchableOpacity)`
-  padding: 10px;
-`;
-
-const ContentContainer = styled.View`
-  padding: 20px;
-`;
-
-const LocationContainer = styled.View`
-  flex-direction: row;
-  align-items: center;
-  padding: 10px 0;
-`;
 
 const LocationText = styled.Text`
   margin-left: 10px;
@@ -340,5 +352,21 @@ color: #fff;
 padding: 10px;
 `;
 
+  // --------------------------------------------------------- //
+ // -----------              Buttons              ----------- //
+// --------------------------------------------------------- //
+
+const CloseButton = styled(TouchableOpacity)`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px;
+  border-radius: 10px;
+  z-index: 10;
+`;
+
+const SectionButton = styled(TouchableOpacity)`
+  padding: 10px;
+`;
 
 export default PinOverlay;
