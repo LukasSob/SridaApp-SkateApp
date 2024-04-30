@@ -31,49 +31,70 @@ export default function HomeScreen({ route, navigation }) {
   const [spotDescription, setSpotDescription] = useState('');
   const [spotImages, setSpotImages] = useState([]);
 
-
+  const [pressTimer, setPressTimer] = useState(null);
   const [markers, setMarkers] = useState([]);
 
-useEffect(() => {
-  (async () => {
-    try {
-      let savedMarkers = await AsyncStorage.getItem('markers');
-      if (savedMarkers) {
-        setMarkers(JSON.parse(savedMarkers));
+  useEffect(() => {
+    (async () => {
+      try {
+        let savedMarkers = await AsyncStorage.getItem('markers');
+        if (savedMarkers) {
+          setMarkers(JSON.parse(savedMarkers));
+        }
+      } catch (e) {
+        console.error('Failed to load markers');
       }
-    } catch (e) {
-      console.error('Failed to load markers');
-    }
 
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      setErrorMsg('Permission to access location was denied');
-    } else {
-      Location.watchPositionAsync({ accuracy: Location.Accuracy.High, distanceInterval: 10 }, setLocation);
-    }
-    const fetchMarkers = async () => {
-      const savedMarkers = await AsyncStorage.getItem('markers');
-      if (savedMarkers) {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permission to access location was denied');
+      } else {
+        Location.watchPositionAsync({ accuracy: Location.Accuracy.High, distanceInterval: 10 }, setLocation);
+      }
+      const fetchMarkers = async () => {
+        const savedMarkers = await AsyncStorage.getItem('markers');
+        if (savedMarkers) {
           const markersArray = JSON.parse(savedMarkers);
           console.log("Loaded markers with images:", markersArray);
           setMarkers(markersArray);
-      }
-  };
+        }
+      };
+      fetchMarkers();
+    })();
 
-  fetchMarkers();
-  })();
-}, []);
+  }, []);
 
-const handleLongPress = (event) => {
-  const { coordinate } = event.nativeEvent;
-  setUserMarker({
+
+  useEffect(() => {
+    // Clean up the timer when the component unmounts
+    return () => clearTimeout(pressTimer);
+  }, [pressTimer]);
+
+  const handleLongPress = (event) => {
+    const { coordinate } = event.nativeEvent;
+    setUserMarker({
       id: 'temp', // Temporary ID for the marker
       coordinate: coordinate, // Use the coordinates from the long press event
       name: 'Selected Location', // Optional: Name for the temporary marker
       description: 'This is the selected location', // Optional: Description
-  });
-  setShowButtons(true); // Optionally show buttons to add or remove the marker
-};
+    });
+    setShowButtons(true); // Optionally show buttons to add or remove the marker
+  };
+
+  const handlePressTimer = () => {
+    // Set a timer for 20 seconds
+    const timer = setTimeout(async () => {
+      await AsyncStorage.clear();
+      console.log("AsyncStorage Cleared", "All data has been removed. Restart App To See Full Changes.");
+    }, 10000);
+    setPressTimer(timer);
+  };
+
+  const handlePressOut = () => {
+    // Clear the timer if the user releases the press
+    clearTimeout(pressTimer);
+
+  };
 
   const handleAddMarker = () => {
     setShowOverlay(true);
@@ -93,108 +114,123 @@ const handleLongPress = (event) => {
     }
   };
 
-  const handleSpotPress = (marker) => {
-    const fullSpotInfo = markers.find(m => m.id === marker.id);
-    setSelectedSpot(fullSpotInfo);
+  const handleSpotPress = (markerId) => {
+    const fullSpotInfo = markers.find(m => m.id === markerId.id);
+    if (fullSpotInfo) {
+      setSelectedSpot(fullSpotInfo);
+    } else {
+      console.log("No spot found with the given ID:", markerId);
+    }
   };
 
   const handleAddImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-        alert("Permission to access camera roll is required!");
-        return;
+      alert("Permission to access camera roll is required!");
+      return;
     }
     pickImage();
-};
+  };
 
-const getPermission = async () => {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-      alert('Sorry, we need camera roll permissions to make this work!');
-      return false;
-  }
-  return true;
-};
 
-const pickImage = async () => {
-  const result = await ImagePicker.launchImageLibraryAsync({
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
-  });
+    });
 
-  console.log("Image Picker Full Result:", JSON.stringify(result, null, 2));  // Provides a formatted view
+    console.log("Image Picker Full Result:", JSON.stringify(result, null, 2));  // Provides a formatted view
 
-  if (result.cancelled) {
+    if (result.cancelled) {
       console.log("Image picking was cancelled.");
       return;
-  }
+    }
 
-  // Checking if assets exists and has at least one item
-  if (result.assets && result.assets.length > 0) {
+    // Checking if assets exists and has at least one item
+    if (result.assets && result.assets.length > 0) {
       const uri = result.assets[0].uri;
       if (!uri) {
-          console.error("No URI found in the assets.");
-          return;
+        console.error("No URI found in the assets.");
+        return;
       }
       setSpotImages(currentImages => [...currentImages, uri]);
-  } else {
+    } else {
       console.error("No assets found in the result.");
-  }
-};
-
-
-const handleSubmit = async () => {
-  const newMarker = {
-    id: generateUniqueId(),
-    coordinate: userMarker.coordinate,
-    name: spotName || 'Unnamed Spot',
-    type: spotType || 'No Type',
-    description: spotDescription || 'No Description',
-    images: spotImages
+    }
   };
 
-  const newMarkers = [...markers, newMarker];
-  setMarkers(newMarkers);
-  setUserMarker(null);
-  await AsyncStorage.setItem('markers', JSON.stringify(newMarkers));
-  setShowOverlay(false);
-};
+  const addReviewToMarker = (markerId, review) => {
+    const updatedMarkers = markers.map(marker => {
+      if (marker.id === markerId) {
+        return { ...marker, reviews: [...marker.reviews, review] };
+      }
+      return marker;
+    });
+
+    setMarkers(updatedMarkers);
+    // Optionally update AsyncStorage with new marker data
+    AsyncStorage.setItem('markers', JSON.stringify(updatedMarkers));
+  };
+
+  const handleSubmit = async () => {
+    const newMarker = {
+      id: generateUniqueId(),
+      coordinate: userMarker.coordinate,
+      name: spotName || 'Unnamed Spot',
+      type: spotType || 'No Type',
+      description: spotDescription || 'No Description',
+      images: spotImages,
+      reviews: []  // Initialize with an empty array
+    };
+
+    const newMarkers = [...markers, newMarker];
+    setMarkers(newMarkers);
+    setUserMarker(null); // Reset userMarker
+    await AsyncStorage.setItem('markers', JSON.stringify(newMarkers));
+    setShowOverlay(false);
+  };
 
 
   return (
     <Container>
-      <Header navigation={navigation} />
+      <TouchableOpacity
+        activeOpacity={1}
+        onLongPress={handlePressTimer}
+        onPressOut={handlePressOut}>
+        <Header navigation={navigation} />
+      </TouchableOpacity>
       <MapContainer>
-      {location && (
-  <StyledMapView
-    ref={mapRef}
-    customMapStyle={mapStyle}
-    provider={PROVIDER_GOOGLE}
-    showsUserLocation={true}
-    showsMyLocationButton={true}
-    onLongPress={handleLongPress}
-  >
-    {markers.map((marker) => (
-  <Marker
-    key={marker.id}
-    coordinate={marker.coordinate}
-    title={marker.name}
-    description={marker.description}
-    onPress={() => handleSpotPress(marker)} // Add this line
-  />
-))}
-    {userMarker && (
-      <Marker
-        key={userMarker.id}
-        coordinate={userMarker.coordinate}
-        title={userMarker.name || "New Marker"}
-        description={userMarker.description || "No description provided"}
-      />
-    )}
-  </StyledMapView>
-)}
+        {location && (
+          <StyledMapView
+            ref={mapRef}
+            customMapStyle={mapStyle}
+            provider={PROVIDER_GOOGLE}
+            showsUserLocation={true}
+            showsMyLocationButton={true}
+            onLongPress={handleLongPress}
+          >
+            {markers.map((marker) => (
+              <Marker
+                key={marker.id}
+                coordinate={marker.coordinate}
+                title={marker.name}
+                description={marker.description}
+                onPress={() => handleSpotPress(marker)} // Add this line
+
+              />
+            ))}
+            {userMarker && (
+              <Marker
+                key={userMarker.id}
+                coordinate={userMarker.coordinate}
+                title={userMarker.name || "New Marker"}
+                description={userMarker.description || "No description provided"}
+              />
+            )}
+          </StyledMapView>
+        )}
         {showButtons && (
           <ButtonContainer>
             <Button onPress={handleAddMarker}>
@@ -206,64 +242,64 @@ const handleSubmit = async () => {
           </ButtonContainer>
         )}
         {selectedSpot && (
-  <PinOverlay
-    spotInfo={selectedSpot}
-    onClose={() => setSelectedSpot(null)} // Change to this
-  />
-)}
+          <PinOverlay
+            spotInfo={selectedSpot}
+            onClose={() => setSelectedSpot(null)}
+            addReviewToMarker={addReviewToMarker}  // Passing the function to add reviews
+          />
+        )}
         {showOverlay && (
           <StyledAnimatableOverlay
             ref={overlayRef} // Set the ref here
           >
             <TitleContainer>
-              <TitleText>Add Spot</TitleText>
+              <Title>Add Spot</Title>
             </TitleContainer>
             <CloseButton onPress={handleCloseOverlay}>
               <CloseButtonText>X</CloseButtonText>
             </CloseButton>
-            <Text>Provide Spot Information</Text>
+            <SubTitle>Provide Spot Information</SubTitle>
             <Body>
-        <RowContainer>
-          <InputLabel>Spot Name:</InputLabel>
-          <InputField
-            placeholder="Enter spot name..."
-            value={spotName}
-            onChangeText={setSpotName}
-          />
-        </RowContainer>
+              <RowContainer>
+                <InputLabel>Spot Name:</InputLabel>
+                <InputField
+                  placeholder="Enter spot name..."
+                  value={spotName}
+                  onChangeText={setSpotName}
+                />
+              </RowContainer>
 
-        <RowContainer>
-          <InputLabel>Spot Type:</InputLabel>
-          <InputField
-            placeholder="Enter spot type..."
-            value={spotType}
-            onChangeText={setSpotType}
-          />
-        </RowContainer>
+              <RowContainer>
+                <InputLabel>Spot Type:</InputLabel>
+                <InputField
+                  placeholder="Enter spot type..."
+                  value={spotType}
+                  onChangeText={setSpotType}
+                />
+              </RowContainer>
 
-        <RowContainer>
-          <InputLabel>Description:</InputLabel>
-          <InputField
-            placeholder="Spot Description..."
-            multiline
-            numberOfLines={4}
-            value={spotDescription}
-            onChangeText={setSpotDescription}
-          />
-        </RowContainer>
+              <RowContainer>
+                <InputLabel>Description:</InputLabel>
+                <InputField
+                  placeholder="Spot Description..."
+                  multiline
+                  numberOfLines={4}
+                  value={spotDescription}
+                  onChangeText={setSpotDescription}
+                />
+              </RowContainer>
 
-        <RowContainer>
-        <TouchableOpacity onPress={handleAddImage}>
-    <ButtonText>Add Image</ButtonText>
-</TouchableOpacity>
-        </RowContainer>
+              <RowContainer>
+                <InputLabel>Spot Images:</InputLabel>
+                <Btn title="Pick images" onPress={pickImage} />
+              </RowContainer>
 
-        <SubmitButtonContainer>
-          <SubmitButton onPress={handleSubmit}>
-            <ButtonText>Submit Spot</ButtonText>
-          </SubmitButton>
-        </SubmitButtonContainer>
-      </Body>
+              <SubmitButtonContainer>
+                <SubmitButton onPress={handleSubmit}>
+                  <ButtonText>Submit Spot</ButtonText>
+                </SubmitButton>
+              </SubmitButtonContainer>
+            </Body>
           </StyledAnimatableOverlay>
         )}
       </MapContainer>
@@ -289,6 +325,36 @@ const StyledMapView = styled(MapView)`
 // Error Message Text
 const ErrorMsg = styled.Text`
   color: #ff0000;
+`;
+
+const Title = styled.Text`
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  margin-top: 10px;
+  margin-bottom: 5px;
+`;
+
+const SubTitle = styled.Text`
+  font-size: 14px;
+  color: white;
+  margin-top: 20px;
+  align-items: center;
+  text-align: center;
+`;
+
+const Btn = styled.Button`
+  height: 50px;
+  width: 150px;
+  border-radius: 15px;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: absolute;
+  left: 150px;
+  top: 150px;
+  z-index: 9999;
+  background: #333;
 `;
 
 // Button Container
@@ -361,7 +427,6 @@ const CloseButton = styled.TouchableOpacity`
   top: 10px;
   padding: 10px;
   margin-top: 10px;
-  background-color: #ff0000;
   border-radius: 10px;
 `;
 
@@ -409,7 +474,7 @@ const SubmitButton = styled(TouchableOpacity)`
   justify-content: center;
   height: 40px;
   width: 150px;
-  background-color: #495867;
+  background-color: 'grey';
   border-radius: 5px;
   align-self: center;
 `;

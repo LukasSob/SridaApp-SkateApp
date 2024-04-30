@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
-import { TouchableOpacity } from 'react-native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { Image, Text, TextInput, TouchableOpacity, Button, Platform } from 'react-native';
 import styled from 'styled-components/native';
 import { SafeAreaView } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 const CreateEventScreen = () => {
   const [eventName, setEventName] = useState('');
@@ -11,10 +12,22 @@ const CreateEventScreen = () => {
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
   const [eventDescription, setEventDescription] = useState('');
+  const [eventCoverImage, setEventCoverImage] = useState(null);
+
+  const pickImage = async () => {
+    let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      alert("Permission to access camera roll is required!");
+      return;
+    }
+    let pickerResult = await ImagePicker.launchImageLibraryAsync();
+    if (pickerResult.cancelled === true) {
+      return;
+    }
+    setEventCoverImage(pickerResult.uri);
+  };
 
   const handleSubmit = () => {
-    // Handle event submission logic here
-    // You can send the event details to a server, save them locally, etc.
     console.log('Event submitted:', {
       eventName,
       eventType,
@@ -23,68 +36,84 @@ const CreateEventScreen = () => {
       eventTime,
       eventDescription,
     });
+  
+    // Simulate saving the event and navigating back with the new event data
+    navigation.navigate('EventsScreen', { newEvent: {
+      name: eventName,
+      type: eventType,
+      location: eventLocation,
+      date: eventDate,
+      time: eventTime,
+      description: eventDescription
+    }});
   };
 
   return (
     <Container>
       <Body>
-      <RowContainer>
-        <InputLabel>Event Name:</InputLabel>
-        <InputField
-          placeholder="Enter event name"
-          value={eventName}
-          onChangeText={setEventName}
-        />
-      </RowContainer>
+        <RowContainer>
+          <InputLabel>Event Name:</InputLabel>
+          <InputField
+            placeholder="Enter event name"
+            value={eventName}
+            onChangeText={setEventName}
+          />
+        </RowContainer>
 
-      <RowContainer>
-        <InputLabel>Event Type:</InputLabel>
-        <InputField
-          placeholder="Enter event type"
-          value={eventType}
-          onChangeText={setEventType}
-        />
-      </RowContainer>
+        <RowContainer>
+          <InputLabel>Event Type:</InputLabel>
+          <InputField
+            placeholder="Enter event type"
+            value={eventType}
+            onChangeText={setEventType}
+          />
+        </RowContainer>
 
-      <RowContainer>
-        <InputLabel>Location:</InputLabel>
-        <InputField
-          placeholder="Enter event location"
-          value={eventLocation}
-          onChangeText={setEventLocation}
-        />
-      </RowContainer>
+        <RowContainer>
+          <InputLabel>Location:</InputLabel>
+          <InputField
+            placeholder="Enter event location"
+            value={eventLocation}
+            onChangeText={setEventLocation}
+          />
+        </RowContainer>
 
-      <RowContainer>
-        <InputLabel>Date:</InputLabel>
-        <InputField
-          placeholder="Enter event date"
-          value={eventDate}
-          onChangeText={setEventDate}
-        />
-      </RowContainer>
+        <RowContainer>
+          <InputLabel>Date:</InputLabel>
+          <InputField
+            placeholder="Enter event date"
+            value={eventDate}
+            onChangeText={setEventDate}
+          />
+        </RowContainer>
 
-      <RowContainer>
-        <InputLabel>Time:</InputLabel>
-        <InputField
-          placeholder="Enter event time"
-          value={eventTime}
-          onChangeText={setEventTime}
-        />
-      </RowContainer>
+        <RowContainer>
+          <InputLabel>Time:</InputLabel>
+          <InputField
+            placeholder="Enter event time"
+            value={eventTime}
+            onChangeText={setEventTime}
+          />
+        </RowContainer>
 
-      <RowContainer>
-        <InputLabel>Description:</InputLabel>
-        <InputField
-          placeholder="Event Description"
-          
-          multiline
-          numberOfLines={4}
-          value={eventDescription}
-          onChangeText={setEventDescription}
-        />
-        
-      </RowContainer>
+        <RowContainer>
+          <InputLabel>Description:</InputLabel>
+          <InputField
+            placeholder="Event Description"
+            multiline
+            numberOfLines={4}
+            value={eventDescription}
+            onChangeText={setEventDescription}
+          />
+        </RowContainer>
+
+        <RowContainer>
+          <InputLabel>Cover Image:</InputLabel>
+          <Button title="Pick an image" onPress={pickImage} />
+        </RowContainer>
+
+        {eventCoverImage && <Image source={{ uri: eventCoverImage }} style={{ width: 200, height: 200 }} />}
+
         <ButtonContainer>
           <SubmitButton onPress={handleSubmit}>
             <ButtonText>Submit Event</ButtonText>
@@ -99,45 +128,38 @@ const Container = styled(SafeAreaView)`
   flex: 1;
 `;
 
-
 const Body = styled.ScrollView`
   background: #477399;
-  margin-bottom: -10%;
+  padding: 20px;
 `;
 
 const RowContainer = styled.View`
   flex-direction: row;
   align-items: center;
-  margin-bottom: 8%;
-  margin-top: 30px;
+  margin-bottom: 15px;
 `;
 
 const InputLabel = styled.Text`
   font-size: 16px;
-  width: 25%; /* Set a specific width for the labels */
-  margin-right: 7%;
-  margin-left: 10%;
-  
+  width: 25%;
   color: #f7f7ff;
 `;
 
 const InputField = styled.TextInput.attrs({
-  placeholderTextColor: '#fff', // Placeholder text color
+  placeholderTextColor: '#fff',
 })`
   flex: 1;
   height: 40px;
   border-width: 1px;
-  margin-right: 10%;
   border-color: #ccc;
   border-radius: 5px;
   padding: 10px;
-  color: #fff; /* Text color */
+  color: #fff;
 `;
 
-const Placeholder = styled.Text`
-  color: #999; /* Placeholder text color */
+const ButtonContainer = styled.View`
+  align-items: center; 
 `;
-
 
 const SubmitButton = styled(TouchableOpacity)`
   border-width: 1px;
@@ -148,11 +170,6 @@ const SubmitButton = styled(TouchableOpacity)`
   width: 150px;
   background-color: #495867;
   border-radius: 5px;
-  align-self: center;
-`;
-
-const ButtonContainer = styled.View`
-  align-items: center; 
 `;
 
 const ButtonText = styled.Text`
